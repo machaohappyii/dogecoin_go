@@ -70,20 +70,37 @@ func Utxo() {
 	}
 }
 
+//根据私钥获取地址
+func getAddress(privKey string) (string, error) {
+	wif, err := btcutil.DecodeWIF(privKey)
+	if err != nil {
+		return "", err
+	}
+	addrPubKey, err := btcutil.NewAddressPubKey(wif.PrivKey.PubKey().SerializeCompressed(), &DOGEParams)
+	address := addrPubKey.EncodeAddress()
+	fmt.Println("from", address)
+	return address, nil
+}
+
 // doge 转账
 func Transfer() {
-	//转账人的私钥
-	fromPrivKey := "QTptU3Ad3kp4ZKTHepuk7VZmAqqXdC86t7eG5fmFMXuDcMk61cwH"
-	//找零地址
-	from := "DHLA3rJcCjG2tQwvnmoJzD5Ej7dBTQqhHK"
-	//转账人
-	to := "DMC7WLY91Uraid4NLzZbb3WmPPPUjkJRbb"
-	//转多少
-	var toVal int64 = 10000000
-	//固定gas费 最稳妥的0.05     0.01也可以
-	var gasFee int64 = 5000000
 	//修改doge的网络--主要是这个 @hunter 注意看下
 	setDogeConfig()
+	//转账人的私钥
+	fromPrivKey := "QS4RDvPG9RgZTpNovgX4KDCjio4BWttE8WN6ir1oh1fGPzHuwECV"
+	//转账人地址 也是找零地址
+	from, err := getAddress(fromPrivKey)
+
+	if err != nil {
+		fmt.Println("getAddress fail", err)
+		return
+	}
+	//转账人
+	to := "DHLA3rJcCjG2tQwvnmoJzD5Ej7dBTQqhHK"
+	//转多少
+	var toVal int64 = 10000000
+	//固定gas费 最稳妥的0.05    0.01也可以
+	var gasFee int64 = 5000000
 	// 获取构建交易
 	tx, err := CreateTx(fromPrivKey, from, to, toVal, gasFee)
 	if err != nil {
@@ -108,7 +125,7 @@ func Transfer() {
 }
 
 // 创建交易
-// 拿到自己utxo 加入 input 公钥验证  构建转账人 找零地址
+// 拿到自己utxo 加入 input 公钥验证  output构建转账人 找零地址
 func CreateTx(privKey string, from string, to string, amount int64, fee int64) (string, error) {
 	utxo, err := GetUtxo(from)
 	if err != nil {
